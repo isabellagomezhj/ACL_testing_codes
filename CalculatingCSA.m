@@ -56,22 +56,31 @@ axis equal; camlight; lighting gouraud;
 title('Cyan = Retained Ligament Region');
 
 %% 6. Cut Positions
-perc = 50;
-proj = Vtrim * n';
-lengthAlongN = max(proj) - min(proj);
+perc = 50; % point along pca axis at which to calculate CSA
+proj = Vtrim * n'; % project selected ligament points onto pca axis
+lengthAlongN = max(proj) - min(proj); % length of ligament along pca axis
 minp = min(proj);
-p_coords = minp + (perc(:)/100) * lengthAlongN;
+p_coords = minp + (perc(:)/100) * lengthAlongN; % coordinates of desired point for CSA, along pca axis
 
 %% 7. Cross-Section Calculation
 num = numel(p_coords);
 areas = zeros(num,1);
 cutPoints = zeros(num,3);
-loopsByCut = cell(num,1);
+
+% loopsByCut = cell(num,1);
+% for k = 1:num
+%     Ppos = mu + (p_coords(k) - mu*n') * n;   
+%     cutPoints(k,:) = Ppos;
+%     [areas(k), loopsByCut{k}, ~] = crossSectionAreaFromMesh(Vtrim, Ftrim, Ppos, n);
+% end
+
+%% 7. Cross-Section Calculation (simplified)
+boundPts = cell(num,1);
 
 for k = 1:num
     Ppos = mu + (p_coords(k) - mu*n') * n;   
     cutPoints(k,:) = Ppos;
-    [areas(k), loopsByCut{k}, ~] = crossSectionAreaFromMesh(Vtrim, Ftrim, Ppos, n);
+    [areas(k), boundPts{k}] = crossSectionAreaFromMesh2(Vtrim, Ppos, n);
 end
 
 %% 8. Display Results
@@ -102,15 +111,20 @@ plot3(nLine(:,1), nLine(:,2), nLine(:,3), 'k--', 'LineWidth', 2, 'DisplayName', 
 %% 12. Draw Cuts
 for k = 1:num
     Ppos = cutPoints(k,:);
-    loops3D = loopsByCut{k};
+    % loops3D = loopsByCut{k};
+    % 
+    % for L = 1:numel(loops3D)
+    %     pts = loops3D{L};
+    %     plotPts = [pts; pts(1,:)];   
+    %     visFlag = 'off'; if L == 1, visFlag = 'on'; end
+    %     plot3(plotPts(:,1), plotPts(:,2), plotPts(:,3), '-', 'Color', colors(k,:), ...
+    %         'LineWidth', 1.5, 'DisplayName', sprintf('%d%% cut', perc(k)), 'HandleVisibility', visFlag);
+    % end
 
-    for L = 1:numel(loops3D)
-        pts = loops3D{L};
-        plotPts = [pts; pts(1,:)];   
-        visFlag = 'off'; if L == 1, visFlag = 'on'; end
-        plot3(plotPts(:,1), plotPts(:,2), plotPts(:,3), '-', 'Color', colors(k,:), ...
+    boundIdxs = boundPts{k};
+    visFlag = 'on';
+    plot3(Vtrim(boundIdxs,1), Vtrim(boundIdxs,2), Vtrim(boundIdxs,3), '-', 'Color', colors(k,:), ...
             'LineWidth', 1.5, 'DisplayName', sprintf('%d%% cut', perc(k)), 'HandleVisibility', visFlag);
-    end
 
     [su,sv] = meshgrid([-1 1], [-1 1]);
     planeCorners = Ppos + (su(:)*scale).*u + (sv(:)*scale).*v;
@@ -124,41 +138,41 @@ xlabel('X'); ylabel('Y'); zlabel('Z');
 legend('show', 'Location', 'best');
 grid on; view(3); camlight; lighting gouraud;
 
-%% 14. Flat 2D Projections of Each Cut
-figure('Name', 'Flat 2D Cross-Section Projections');
-
-for k = 1:num
-    subplot(1, num, k);
-    hold on; axis equal; grid on; box on;
-
-    Ppos = cutPoints(k,:);
-    loops3D = loopsByCut{k};
-
-    allXY = zeros(0,2);
-    for L = 1:numel(loops3D)
-        pts3 = loops3D{L};
-        XY = [(pts3 - Ppos) * u', (pts3 - Ppos) * v'];
-        plotXY = [XY; XY(1,:)];   
-        plot(plotXY(:,1), plotXY(:,2), '-', 'Color', colors(k,:), 'LineWidth', 1.5);
-        allXY = [allXY; XY];
-    end
-
-    if size(allXY,1) >= 3
-        [ellX, ellY] = fitEquivalentEllipse2D(allXY);
-        plot(ellX, ellY, '--', 'Color', [0.2 0.2 0.2], 'LineWidth', 1.5);
-    end
-
-    title(sprintf('%d%% cut (Area = %.3f)', perc(k), areas(k)));
-    xlabel('u'); ylabel('v');
-
-    x_bounds = xlim; y_bounds = ylim;
-    x_pad = range(x_bounds) * 0.1;
-    y_pad = range(y_bounds) * 0.1;
-    xlim(x_bounds + [-x_pad, x_pad]);
-    ylim(y_bounds + [-y_pad, y_pad]);
-end
-
-sgtitle('Flat 2D Projections of Cross Sections');
+% %% 14. Flat 2D Projections of Each Cut
+% figure('Name', 'Flat 2D Cross-Section Projections');
+% 
+% for k = 1:num
+%     subplot(1, num, k);
+%     hold on; axis equal; grid on; box on;
+% 
+%     Ppos = cutPoints(k,:);
+%     loops3D = loopsByCut{k};
+% 
+%     allXY = zeros(0,2);
+%     for L = 1:numel(loops3D)
+%         pts3 = loops3D{L};
+%         XY = [(pts3 - Ppos) * u', (pts3 - Ppos) * v'];
+%         plotXY = [XY; XY(1,:)];   
+%         plot(plotXY(:,1), plotXY(:,2), '-', 'Color', colors(k,:), 'LineWidth', 1.5);
+%         allXY = [allXY; XY];
+%     end
+% 
+%     if size(allXY,1) >= 3
+%         [ellX, ellY] = fitEquivalentEllipse2D(allXY);
+%         plot(ellX, ellY, '--', 'Color', [0.2 0.2 0.2], 'LineWidth', 1.5);
+%     end
+% 
+%     title(sprintf('%d%% cut (Area = %.3f)', perc(k), areas(k)));
+%     xlabel('u'); ylabel('v');
+% 
+%     x_bounds = xlim; y_bounds = ylim;
+%     x_pad = range(x_bounds) * 0.1;
+%     y_pad = range(y_bounds) * 0.1;
+%     xlim(x_bounds + [-x_pad, x_pad]);
+%     ylim(y_bounds + [-y_pad, y_pad]);
+% end
+% 
+% sgtitle('Flat 2D Projections of Cross Sections');
 
 %% Reference Ellipse Fit (point-based second moments, no shoelace)
 function [ellX, ellY] = fitEquivalentEllipse2D(XY)
@@ -291,4 +305,36 @@ for k = 1:numLoops
     areas(k) = polyarea(XYs(:,1), XYs(:,2));
 end
 areaTotal = sum(areas);
+
 end
+
+%% Cross Sectional Area from Mesh
+function [areaTotal, boundVIdxs] = crossSectionAreaFromMesh2(V, P0, n)
+n = n(:)' / norm(n);
+tol = 0.5;
+
+% Step 1: project points onto pca axis
+proj = V * n';
+P0proj = P0 * n';
+
+% Step 2: find points within 1 mm of P0
+dists = P0proj-proj;
+idxs = abs(dists) < tol;
+csa_pts = V(idxs,:);
+
+% Step 3: project points onto plane
+csa_pts_proj = csa_pts - (sum((csa_pts - P0) .* n, 2)/norm(n)^2)*n;
+
+% Step 4: bound and calculate area
+[boundPts, areaTotal] = boundary(csa_pts_proj(:,1:2));
+
+figure; hold on
+plot(csa_pts_proj(:,1), csa_pts_proj(:,2), '.');
+plot(csa_pts_proj(boundPts,1), csa_pts_proj(boundPts,2), 'LineWidth', 3);
+title(['Mesh points within ' num2str(tol) 'mm of plane (along PCA axis), and boundary line'])
+
+% Step 5: Map indices of boundary points back to V
+VIdxs = find(idxs);
+boundVIdxs = VIdxs(boundPts); 
+end
+
