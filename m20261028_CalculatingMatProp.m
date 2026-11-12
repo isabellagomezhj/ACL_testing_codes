@@ -86,12 +86,12 @@ N_ramp(indexlist)=[];
 N_ramp=rmmissing(N_ramp);
 ACU_t_ramp=rmmissing(ACU_t_ramp);
 
-% % plot to verify overshoot
-% figure()
-% plot(ACU_t_ramp,N_ramp,'.');
-% hold on
-% plot(ACU_t_relax,N_relax);
- 
+% plot to verify overshoot
+figure()
+plot(ACU_t_ramp,N_ramp,'.');
+hold on
+plot(ACU_t_relax,N_relax,'.');
+
 % plot (for verification)
 figure
 hold on
@@ -119,37 +119,37 @@ DIC_t1=DIC_t(mask4);
 DIC_t1=DIC_t1-DIC_t1(1); %zeroes the filtered data
 ystrain1=ystrain(mask4);
 
-% % plot to verify adequate filtering
-% figure()
-% plot(DIC_t1,ystrain1);
-% title('Filtered Data - DIC');
+% plot to verify adequate filtering
+figure()
+plot(DIC_t1,ystrain1);
+title('Filtered Data - DIC');
 
 % smooth data and detect changes
 ystrain1_smooth=smoothdata(ystrain1,'movmean');
 TF=ischange(ystrain1_smooth,'linear');
 idxs=find(TF);
 
-% % plot to verify smoothing and critical point identification
-% figure()
-% hold on
-% plot(DIC_t1,ystrain1_smooth);
-% plot(DIC_t1(TF),ystrain1(TF),'r*');
-% title('Data Smoothed (W/ Critical Pts.) - DIC');
+% plot to verify smoothing and critical point identification
+figure()
+hold on
+plot(DIC_t1,ystrain1_smooth);
+plot(DIC_t1(TF),ystrain1(TF),'r*');
+title('Data Smoothed (W/ Critical Pts.) - DIC');
 
 % define ramp regions (used to calculate gamma)
 DIC_t_ramp=DIC_t1(idxs(1):idxs(2));
-ystrain_ramp=ystrain1(idxs(1):idxs(2));
+ystrain_ramp=ystrain1(idxs(1):idxs(2)).*0.01;
 
 % define relax regions
 DIC_t_relax=DIC_t1(idxs(2):idxs(3));
-ystrain_relax=ystrain1(idxs(2):idxs(3));
+ystrain_relax=ystrain1(idxs(2):idxs(3)).*0.01;
 
 % plot to verify sectioning
 figure()
 hold on
 plot(DIC_t_ramp,ystrain_ramp,'m');
 plot(DIC_t_relax,ystrain_relax,'g');
-plot(DIC_t1(TF),ystrain1(TF),'y*');
+plot(DIC_t1(TF),ystrain1(TF)*0.01,'y*');
 title('Filtered Data (Ramp & Relaxation) - DIC');
 
 % filter out overshoot
@@ -157,7 +157,7 @@ indexlist2=[];
 j2=1;
 
 for i=1:length(ystrain_ramp)
-    if DIC_t_ramp(i)<5 && ystrain_ramp(i)>4
+    if DIC_t_ramp(i)<5 && ystrain_ramp(i)>0.04
         indexlist2(j2)=i;
         j2=j2+1;
     end
@@ -169,11 +169,11 @@ ystrain_ramp(indexlist2)=[];
 ystrain_ramp=rmmissing(ystrain_ramp);
 DIC_t_ramp=rmmissing(DIC_t_ramp);
 
-% % plot to verify exclusion of overshoot
-% figure()
-% plot(DIC_t_ramp,ystrain_ramp);
-% hold on
-% plot(DIC_t_relax,ystrain_relax);
+% plot to verify exclusion of overshoot
+figure()
+plot(DIC_t_ramp,ystrain_ramp);
+hold on
+plot(DIC_t_relax,ystrain_relax);
 
 %% Calculate strain rate (gamma)
 coeffs=polyfit(DIC_t_ramp,ystrain_ramp,1); %fit ramp data (from DIC) linearly
@@ -237,8 +237,8 @@ figure()
 hold on
 plot(t_ra,R,'b');
 plot(t_rx,S,'r');
-plot(t_ra,eqn5(vars(1), vars(2), vars(3), vars(4), vars(5)),'.b');
-plot(t_rx,eqn6(vars(1), vars(2), vars(3), vars(4), vars(5)),'.r');
+plot(t_ra,eqn5(vars(1), vars(2), vars(3), vars(4), vars(5)),'b');
+plot(t_rx,eqn6(vars(1), vars(2), vars(3), vars(4), vars(5)),'r');
 
 
 
